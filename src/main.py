@@ -1,5 +1,6 @@
+import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api
 import dearpygui.dearpygui as dpg
-import json, os, ctypes, torch, threading
+import numpy as np
 
 __config__ = json.loads(open("../script/config.json", "r+").read())
 
@@ -276,18 +277,287 @@ class POINT(ctypes.Structure):
 
 class Aimbot(threading.Thread):
     def __init__(self):
-        self.fov = 416
+        self.fov = 350
+
+        self.screensize = {
+            "X": ctypes.windll.user32.GetSystemMetrics(0),
+            "Y": ctypes.windll.user32.GetSystemMetrics(1),
+        }
+
+        self.screen_x = int(self.screensize["X"] / 2)
+        self.screen_y = int(self.screensize["Y"] / 2)
+
+        self.detection_box = {
+            "left": int((self.screensize["X"] / 2) - (self.fov // 2)),
+            "top": int((self.screensize["Y"] / 2) - (self.fov // 2)),
+            "width": self.fov,
+            "height": self.fov,
+        }
+
         self.model = torch.hub.load(
-            "ultralytics/yolov5", "custom", path="lib/old_best.pt", force_reload=True
+            "ultralytics/yolov5",
+            "custom",
+            path="../assets/best.pt",
+            force_reload=False,
         )
 
+        self.screen = mss.mss()
+        self.extra = ctypes.c_ulong(0)
+        self.ii_ = Input_I()
+
+        self.mouse_delay=0.0006
+
+        self.sens_config = __config__['sensitivity']
+
         threading.Thread.__init__(self)
+
+    def left_click(self):
+        ctypes.windll.user32.mouse_event(0x0002)  # left mouse down
+        self.sleep(0.0001)
+        ctypes.windll.user32.mouse_event(0x0004)  # left mouse up
+
+    def sleep(self, duration, get_now=time.perf_counter):
+        if duration == 0:
+            return
+        now = get_now()
+        end = now + duration
+        while now < end:
+            now = get_now()
+
+    def is_aimbot_enabled(self):
+        return bool(dpg.get_value("aimbot_enabled"))
+
+    def is_targeted(self):
+        return True if win32api.GetKeyState(0x02) in (-127, -128) else False
+
+    def is_target_locked(self, x, y):
+        threshold = int(dpg.get_value("triggerbot_treshold"))
+        return (
+            True
+            if self.screen_x - threshold <= x <= self.screen_x + threshold
+            and self.screen_y - threshold <= y <= self.screen_y + threshold
+            else False
+        )
+
+    def move_crosshair(self, x, y):
+        if self.is_targeted():
+            scale = self.sens_config["targeting_scale"]
+        else:
+            return
+        
+        smooth = self.interpolate_coordinates_from_center((x, y), scale, int(dpg.get_value("behaviours_smooth"))) if int(dpg.get_value("behaviours_smooth")) != 0 else self.interpolate_coordinates_from_center_direct((x, y), scale)
+
+        for rel_x, rel_y in smooth:  # , float(dpg.get_value("behaviours_speed"))
+            self.ii_.mi = MouseInput(
+                rel_x, rel_y, 0, 0x0001, 0, ctypes.pointer(self.extra)
+            )
+
+            input_obj = Input(ctypes.c_ulong(0), self.ii_)
+
+            ctypes.windll.user32.SendInput(
+                1, ctypes.byref(input_obj), ctypes.sizeof(input_obj)
+            )
+
+            self.sleep(self.mouse_delay)
+
+    # generator yields pixel tuples for relative movement
+    def ease_out_quad(self, t):
+        return 1 - (1 - t) ** 2
+    
+    def interpolate_coordinates_from_center_direct(self, absolute_coordinates, scale):
+        diff_x = (absolute_coordinates[0] - 960) * scale/self.pixel_increment
+        diff_y = (absolute_coordinates[1] - 540) * scale/self.pixel_increment
+        length = int(math.dist((0,0), (diff_x, diff_y)))
+        if length == 0: return
+        unit_x = (diff_x/length) * self.pixel_increment
+        unit_y = (diff_y/length) * self.pixel_increment
+        x = y = sum_x = sum_y = 0
+        for k in range(0, length):
+            sum_x += x
+            sum_y += y
+            x, y = round(unit_x * k - sum_x), round(unit_y * k - sum_y)
+            yield x, y
+
+    def interpolate_coordinates_from_center(
+        self, absolute_coordinates, scale, smoothness
+    ):
+        diff_x = (absolute_coordinates[0] - self.screen_x) * scale / self.pixel_increment
+        diff_y = (absolute_coordinates[1] - self.screen_y) * scale / self.pixel_increment
+        length = int(math.dist((0, 0), (diff_x, diff_y)))
+
+        if length == 0:
+            return
+
+        # Calculate fixed unit vectors without speed_factor
+        unit_x = (diff_x / length) * self.pixel_increment
+        unit_y = (diff_y / length) * self.pixel_increment
+
+        x = y = sum_x = sum_y = 0
+
+        for k in range(0, length):
+            t = k / length
+            eased_t = self.ease_out_quad(t)
+
+            # Adjust the easing function using the smoothness parameter
+            smoothed_t = t ** (smoothness / 100.0)
+            eased_t = self.ease_out_quad(smoothed_t)
+
+            sum_x += x
+            sum_y += y
+            x, y = round(unit_x * eased_t - sum_x), round(unit_y * eased_t - sum_y)
+            yield x, y
 
     def run(self):
         if torch.cuda.is_available():
             Console.print("[+] Cuda is available")
 
+        print(self.detection_box)
+
+        while True:
+            self.model.conf = float(dpg.get_value("aimbot_confidence"))  # base confidence threshold (or base detection (0-1)
+            self.model.iou = float(dpg.get_value("aimbot_iou"))  # NMS IoU (0-1)
+            self.pixel_increment = int(dpg.get_value("behaviours_increment"))
+
+            frame = np.array(self.screen.grab(self.detection_box))
+            # frame = cv2.resize(fr, None, fx=0.5, fy=0.5)
+            start_time = time.perf_counter()
+
+            results = self.model(frame)
+            #print(results)
+
+            if len(results.xyxy[0]) != 0:
+                least_crosshair_dist = closest_detection = player_in_frame = False
+
+                for *box, conf, _ in results.xyxy[0]:
+                    x1y1 = [int(x.item()) for x in box[:2]]
+                    x2y2 = [int(x.item()) for x in box[2:]]
+
+                    x1, y1, x2, y2, conf = *x1y1, *x2y2, conf.item()
+                    height = y2 - y1
+
+                    relative_head_X, relative_head_Y = int((x1 + x2) / 2), int(
+                        (y1 + y2) / 2 - height / int(dpg.get_value("aimbot_pos"))
+                    )
+
+                    own_player = x1 < 15 or (x1 < self.fov / 5 and y2 > self.fov / 1.2)
+
+                    crosshair_dist = math.dist(
+                        (relative_head_X, relative_head_Y), (self.fov / 2, self.fov / 2)
+                    )
+
+                    if not least_crosshair_dist:
+                        least_crosshair_dist = crosshair_dist
+
+                    if crosshair_dist <= least_crosshair_dist and not own_player:
+                        least_crosshair_dist = crosshair_dist
+                        closest_detection = {
+                            "x1y1": x1y1,
+                            "x2y2": x2y2,
+                            "relative_head_X": relative_head_X,
+                            "relative_head_Y": relative_head_Y,
+                            "conf": conf,
+                        }
+
+                    if not own_player:
+                        cv2.rectangle(frame, x1y1, x2y2, (255, 0, 6), 2)
+                        cv2.putText(
+                            frame,
+                            f"{int(conf * 100)}%",
+                            x1y1,
+                            cv2.FONT_HERSHEY_DUPLEX,
+                            0.5,
+                            (6, 0, 255),
+                            1,
+                        )
+                    else:
+                        own_player = False
+                        if not player_in_frame:
+                            player_in_frame = True
+
+                if closest_detection:
+                    cv2.circle(
+                        frame,
+                        (
+                            closest_detection["relative_head_X"],
+                            closest_detection["relative_head_Y"],
+                        ),
+                        5,
+                        (115, 244, 113),
+                        -1,
+                    )
+
+                    cv2.line(
+                        frame,
+                        (
+                            closest_detection["relative_head_X"],
+                            closest_detection["relative_head_Y"],
+                        ),
+                        (self.fov // 2, self.fov // 2),
+                        (244, 242, 113),
+                        1,
+                    )
+
+                    absolute_head_X, absolute_head_Y = (
+                        closest_detection["relative_head_X"]
+                        + self.detection_box["left"],
+                        closest_detection["relative_head_Y"]
+                        + self.detection_box["top"],
+                    )
+
+                    x1, y1 = closest_detection["x1y1"]
+                    cv2.putText(
+                        frame,
+                        "TARGETING",
+                        (x1 + 40, y1),
+                        cv2.FONT_HERSHEY_DUPLEX,
+                        0.5,
+                        (115, 113, 244),
+                        1,
+                    )
+
+                    if self.is_target_locked(absolute_head_X, absolute_head_Y):
+                        if bool(dpg.get_value("triggerbot_enabled")):
+                            self.left_click()
+                        cv2.putText(
+                            frame,
+                            "LOCKED",
+                            (x1 + 40, y1),
+                            cv2.FONT_HERSHEY_DUPLEX,
+                            0.5,
+                            (115, 244, 113),
+                            1,
+                        )  # draw the confidence labels on the bounding boxes
+                    else:
+                        cv2.putText(
+                            frame,
+                            "TARGETING",
+                            (x1 + 40, y1),
+                            cv2.FONT_HERSHEY_DUPLEX,
+                            0.5,
+                            (115, 113, 244),
+                            1,
+                        )  # draw the confidence labels on the bounding boxes
+
+                    if self.is_aimbot_enabled():
+                        self.move_crosshair(absolute_head_X, absolute_head_Y)
+
+            cv2.putText(
+                frame,
+                f"FPS: {int(1/(time.perf_counter() - start_time))}",
+                (5, 30),
+                cv2.FONT_HERSHEY_DUPLEX,
+                1,
+                (256, 256, 256),
+                1,
+            )
+            cv2.imshow("AI", frame)
+
+            if cv2.waitKey(1) & 0xFF == ord("0"):
+                break
+
 
 if __name__ == "__main__":
     Configurator.check()
-    Gui()
+
+    Gui().start()
+    Aimbot().run()

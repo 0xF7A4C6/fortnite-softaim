@@ -1,6 +1,8 @@
 {
-    "xy_sens": 4.7,
-    "targeting_sens": 40.8,
-    "xy_scale": 2.127659574468085,
-    "targeting_scale": 5.214851898206091
+    "sensitivity": {
+        "xy_sens": 4.7,
+        "targeting_sens": 40.8,
+        "xy_scale": 2.127659574468085,
+        "targeting_scale": 5.214851898206091
+    }
 }
