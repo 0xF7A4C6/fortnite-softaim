@@ -2,6 +2,8 @@ import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api
 import dearpygui.dearpygui as dpg
 import numpy as np
 
+import pyautogui
+
 __config__ = json.loads(open("../script/config.json", "r+").read())
 
 
@@ -38,6 +40,62 @@ class Configurator:
                 )
 
 
+class Overlay:
+    def __init__(self) -> None:
+        dpg.create_viewport(
+            title="overlay",
+            always_on_top=True,
+            decorated=False,
+            clear_color=[
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        )
+
+        dpg.set_viewport_always_top(True)
+        dpg.create_context()
+        dpg.setup_dearpygui()
+
+        dpg.add_viewport_drawlist(
+            front=False,
+            tag="Viewport_back",
+        )
+
+        with dpg.window(label="test", width=200, height=300):
+            dpg.add_checkbox(
+                label="Show Fov",
+                callback=Overlay.show_fov,
+            )
+            dpg.add_slider_float(
+                label="Fov",
+                min_value=25,
+                max_value=150,
+                default_value=25,
+                tag="slider1",
+            )
+
+        dpg.show_viewport()
+        dpg.toggle_viewport_fullscreen()
+
+    @staticmethod
+    def show_fov(sender, data):
+        global circle
+
+        if data == True:
+            sl_value = dpg.get_value("slider1")
+            circle = dpg.draw_circle(
+                (960, 540),
+                sl_value,
+                color=(255, 255, 255, 255),
+                parent="Viewport_back",
+            )
+
+        if data == False:
+            dpg.delete_item(circle)
+
+
 class Gui(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -49,15 +107,42 @@ class Gui(threading.Thread):
         with dpg.window(tag="Primary Window"):
             with dpg.tab_bar():
                 with dpg.tab(label="Configuration"):
-                    """with dpg.tree_node(label="Visual"):
-                    with dpg.tree_node(label="FOV"):
-                        dpg.add_checkbox(label="Enabled", tag="fov_enabled")
-                        dpg.add_slider_float(label="FOV", default_value=416, max_value=832, tag="fov_value")
+                    with dpg.tree_node(label="Visual"):
+                        with dpg.tree_node(label="FOV"):
+                            dpg.add_checkbox(
+                                label="Enabled",
+                                tag="fov_enabled",
+                                # callback=self.overlay.show_fov,
+                            )
 
-                    with dpg.tree_node(label="ESP"):
-                        dpg.add_checkbox(label="Enabled", tag="esp_enabled")
-                        dpg.add_checkbox(label="Confidence", tag="esp_confidence")
-                        dpg.add_checkbox(label="Optimal path", tag="esp_path")"""
+                            dpg.add_slider_float(
+                                label="FOV",
+                                default_value=350,
+                                max_value=850,
+                                min_value=100,
+                                tag="fov_value",
+                            )
+
+                        with dpg.tree_node(label="ESP"):
+                            dpg.add_checkbox(
+                                label="Enabled",
+                                tag="esp_enabled",
+                            )
+
+                            dpg.add_checkbox(
+                                label="Confidence",
+                                tag="esp_confidence",
+                            )
+
+                            dpg.add_checkbox(
+                                label="Optimal path",
+                                tag="esp_path",
+                            )
+
+                            dpg.add_checkbox(
+                                label="Tracers",
+                                tag="esp_tracers",
+                            )
 
                     with dpg.tree_node(label="Aimbot"):
                         dpg.add_slider_float(
@@ -80,7 +165,9 @@ class Gui(threading.Thread):
                             tag="aimbot_pos",
                         )
                         dpg.add_checkbox(
-                            label="Enabled", tag="aimbot_enabled", default_value=True
+                            label="Enabled",
+                            tag="aimbot_enabled",
+                            default_value=True,
                         )
                         # dpg.add_radio_button(("Head", "Body", "Feet"), tag="aimbot_position")
 
@@ -88,7 +175,7 @@ class Gui(threading.Thread):
                         dpg.add_slider_int(
                             label="Treshold",
                             default_value=20,
-                            max_value=50,
+                            max_value=25,
                             tag="triggerbot_treshold",
                         )
                         dpg.add_checkbox(
@@ -107,7 +194,7 @@ class Gui(threading.Thread):
                             )
                             dpg.add_slider_float(
                                 label="smooth",
-                                default_value=2,
+                                default_value=0,
                                 max_value=100,
                                 tag="behaviours_smooth",
                             )
@@ -305,9 +392,9 @@ class Aimbot(threading.Thread):
         self.extra = ctypes.c_ulong(0)
         self.ii_ = Input_I()
 
-        self.mouse_delay=0.0006
+        self.mouse_delay = 0.0009 
 
-        self.sens_config = __config__['sensitivity']
+        self.sens_config = __config__["sensitivity"]
 
         threading.Thread.__init__(self)
 
@@ -319,8 +406,10 @@ class Aimbot(threading.Thread):
     def sleep(self, duration, get_now=time.perf_counter):
         if duration == 0:
             return
+
         now = get_now()
         end = now + duration
+
         while now < end:
             now = get_now()
 
@@ -332,6 +421,7 @@ class Aimbot(threading.Thread):
 
     def is_target_locked(self, x, y):
         threshold = int(dpg.get_value("triggerbot_treshold"))
+
         return (
             True
             if self.screen_x - threshold <= x <= self.screen_x + threshold
@@ -344,10 +434,18 @@ class Aimbot(threading.Thread):
             scale = self.sens_config["targeting_scale"]
         else:
             return
-        
-        smooth = self.interpolate_coordinates_from_center((x, y), scale, int(dpg.get_value("behaviours_smooth"))) if int(dpg.get_value("behaviours_smooth")) != 0 else self.interpolate_coordinates_from_center_direct((x, y), scale)
 
-        for rel_x, rel_y in smooth:  # , float(dpg.get_value("behaviours_speed"))
+        smooth = (
+            self.interpolate_coordinates_from_center(
+                (x, y),
+                scale,
+                int(dpg.get_value("behaviours_smooth")),
+            )
+            if int(dpg.get_value("behaviours_smooth")) != 0
+            else self.interpolate_coordinates_from_center_direct((x, y), scale)
+        )
+
+        for rel_x, rel_y in smooth:
             self.ii_.mi = MouseInput(
                 rel_x, rel_y, 0, 0x0001, 0, ctypes.pointer(self.extra)
             )
@@ -355,7 +453,9 @@ class Aimbot(threading.Thread):
             input_obj = Input(ctypes.c_ulong(0), self.ii_)
 
             ctypes.windll.user32.SendInput(
-                1, ctypes.byref(input_obj), ctypes.sizeof(input_obj)
+                1,
+                ctypes.byref(input_obj),
+                ctypes.sizeof(input_obj),
             )
 
             self.sleep(self.mouse_delay)
@@ -363,14 +463,15 @@ class Aimbot(threading.Thread):
     # generator yields pixel tuples for relative movement
     def ease_out_quad(self, t):
         return 1 - (1 - t) ** 2
-    
+
     def interpolate_coordinates_from_center_direct(self, absolute_coordinates, scale):
-        diff_x = (absolute_coordinates[0] - 960) * scale/self.pixel_increment
-        diff_y = (absolute_coordinates[1] - 540) * scale/self.pixel_increment
-        length = int(math.dist((0,0), (diff_x, diff_y)))
-        if length == 0: return
-        unit_x = (diff_x/length) * self.pixel_increment
-        unit_y = (diff_y/length) * self.pixel_increment
+        diff_x = (absolute_coordinates[0] - 960) * scale / self.pixel_increment
+        diff_y = (absolute_coordinates[1] - 540) * scale / self.pixel_increment
+        length = int(math.dist((0, 0), (diff_x, diff_y)))
+        if length == 0:
+            return
+        unit_x = (diff_x / length) * self.pixel_increment
+        unit_y = (diff_y / length) * self.pixel_increment
         x = y = sum_x = sum_y = 0
         for k in range(0, length):
             sum_x += x
@@ -379,10 +480,17 @@ class Aimbot(threading.Thread):
             yield x, y
 
     def interpolate_coordinates_from_center(
-        self, absolute_coordinates, scale, smoothness
+        self,
+        absolute_coordinates,
+        scale,
+        smoothness,
     ):
-        diff_x = (absolute_coordinates[0] - self.screen_x) * scale / self.pixel_increment
-        diff_y = (absolute_coordinates[1] - self.screen_y) * scale / self.pixel_increment
+        diff_x = (
+            (absolute_coordinates[0] - self.screen_x) * scale / self.pixel_increment
+        )
+        diff_y = (
+            (absolute_coordinates[1] - self.screen_y) * scale / self.pixel_increment
+        )
         length = int(math.dist((0, 0), (diff_x, diff_y)))
 
         if length == 0:
@@ -414,16 +522,23 @@ class Aimbot(threading.Thread):
         print(self.detection_box)
 
         while True:
-            self.model.conf = float(dpg.get_value("aimbot_confidence"))  # base confidence threshold (or base detection (0-1)
-            self.model.iou = float(dpg.get_value("aimbot_iou"))  # NMS IoU (0-1)
+            self.model.conf = float(dpg.get_value("aimbot_confidence"))
+            self.model.iou = float(dpg.get_value("aimbot_iou"))
             self.pixel_increment = int(dpg.get_value("behaviours_increment"))
+
+            self.fov = int(dpg.get_value("fov_value"))
+            self.detection_box = {
+                "left": int((self.screensize["X"] / 2) - (self.fov // 2)),
+                "top": int((self.screensize["Y"] / 2) - (self.fov // 2)),
+                "width": self.fov,
+                "height": self.fov,
+            }
 
             frame = np.array(self.screen.grab(self.detection_box))
             # frame = cv2.resize(fr, None, fx=0.5, fy=0.5)
             start_time = time.perf_counter()
 
             results = self.model(frame)
-            #print(results)
 
             if len(results.xyxy[0]) != 0:
                 least_crosshair_dist = closest_detection = player_in_frame = False
@@ -442,7 +557,8 @@ class Aimbot(threading.Thread):
                     own_player = x1 < 15 or (x1 < self.fov / 5 and y2 > self.fov / 1.2)
 
                     crosshair_dist = math.dist(
-                        (relative_head_X, relative_head_Y), (self.fov / 2, self.fov / 2)
+                        (relative_head_X, relative_head_Y),
+                        (self.fov / 2, self.fov / 2),
                     )
 
                     if not least_crosshair_dist:
@@ -459,7 +575,13 @@ class Aimbot(threading.Thread):
                         }
 
                     if not own_player:
-                        cv2.rectangle(frame, x1y1, x2y2, (255, 0, 6), 2)
+                        cv2.rectangle(
+                            frame,
+                            x1y1,
+                            x2y2,
+                            (255, 0, 6),
+                            2,
+                        )
                         cv2.putText(
                             frame,
                             f"{int(conf * 100)}%",
@@ -518,6 +640,7 @@ class Aimbot(threading.Thread):
                     if self.is_target_locked(absolute_head_X, absolute_head_Y):
                         if bool(dpg.get_value("triggerbot_enabled")):
                             self.left_click()
+
                         cv2.putText(
                             frame,
                             "LOCKED",
@@ -526,7 +649,7 @@ class Aimbot(threading.Thread):
                             0.5,
                             (115, 244, 113),
                             1,
-                        )  # draw the confidence labels on the bounding boxes
+                        )
                     else:
                         cv2.putText(
                             frame,
@@ -536,7 +659,7 @@ class Aimbot(threading.Thread):
                             0.5,
                             (115, 113, 244),
                             1,
-                        )  # draw the confidence labels on the bounding boxes
+                        )
 
                     if self.is_aimbot_enabled():
                         self.move_crosshair(absolute_head_X, absolute_head_Y)
@@ -550,8 +673,8 @@ class Aimbot(threading.Thread):
                 (256, 256, 256),
                 1,
             )
-            cv2.imshow("AI", frame)
 
+            cv2.imshow("AI", frame)
             if cv2.waitKey(1) & 0xFF == ord("0"):
                 break
 
