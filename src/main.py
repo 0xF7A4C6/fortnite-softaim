@@ -2,10 +2,7 @@ import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api
 import dearpygui.dearpygui as dpg
 import numpy as np
 
-import pyautogui
-
 __config__ = json.loads(open("../script/config.json", "r+").read())
-
 
 class Console:
     @staticmethod
@@ -534,7 +531,8 @@ class Aimbot(threading.Thread):
                 "height": self.fov,
             }
 
-            frame = np.array(self.screen.grab(self.detection_box))
+            fr = np.array(self.screen.grab(self.detection_box))
+            frame = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
             # frame = cv2.resize(fr, None, fx=0.5, fy=0.5)
             start_time = time.perf_counter()
 
