@@ -1,4 +1,4 @@
-import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api, random
+import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api, random, uuid
 import dearpygui.dearpygui as dpg
 import numpy as np
 
@@ -121,7 +121,7 @@ class Gui(threading.Thread):
                                 tag="fov_value",
                             )
 
-                        with dpg.tree_node(label="ESP"):
+                        """with dpg.tree_node(label="ESP"):
                             dpg.add_checkbox(
                                 label="Enabled",
                                 tag="esp_enabled",
@@ -140,7 +140,7 @@ class Gui(threading.Thread):
                             dpg.add_checkbox(
                                 label="Tracers",
                                 tag="esp_tracers",
-                            )
+                            )"""
 
                     with dpg.tree_node(label="Aimbot"):
                         dpg.add_slider_float(
@@ -172,7 +172,7 @@ class Gui(threading.Thread):
                     with dpg.tree_node(label="Trigger bot"):
                         dpg.add_slider_int(
                             label="Treshold",
-                            default_value=20,
+                            default_value=5,
                             max_value=25,
                             tag="triggerbot_treshold",
                         )
@@ -186,14 +186,16 @@ class Gui(threading.Thread):
                         with dpg.group(label="Behaviours"):
                             dpg.add_slider_int(
                                 label="increment",
-                                default_value=30,
-                                max_value=200,
+                                default_value=80,
+                                min_value=4,
+                                max_value=150,
                                 tag="behaviours_increment",
                             )
                             dpg.add_slider_float(
                                 label="smooth",
-                                default_value=0,
+                                default_value=8,
                                 max_value=100,
+                                min_value=1,
                                 tag="behaviours_smooth",
                             )
 
@@ -207,13 +209,17 @@ class Gui(threading.Thread):
                                 tag="datacollect_enabled",
                                 default_value=True,
                             )
+                            dpg.add_checkbox(
+                                label="Require lock",
+                                tag="datacollect_require_lock",
+                                default_value=True,
+                            )
                             dpg.add_slider_float(
                                 label="Confidence",
-                                default_value=0.70,
+                                default_value=0.75,
                                 max_value=1,
                                 tag="data_confidence",
                             )
-                            # dpg.add_radio_button(("On detection", "On lock", "On lock + fire"),tag="data_detection_type")
 
             with dpg.theme() as global_theme:
                 with dpg.theme_component(dpg.mvAll):
@@ -374,6 +380,7 @@ class POINT(ctypes.Structure):
 class Aimbot(threading.Thread):
     def __init__(self):
         self.fov = 350
+        self.resize = self.fov
 
         self.screensize = {
             "X": ctypes.windll.user32.GetSystemMetrics(0),
@@ -401,7 +408,7 @@ class Aimbot(threading.Thread):
         self.extra = ctypes.c_ulong(0)
         self.ii_ = Input_I()
 
-        self.mouse_delay = 0.0009
+        self.mouse_delay = 0.0001
 
         self.sens_config = __config__["sensitivity"]
 
@@ -524,12 +531,18 @@ class Aimbot(threading.Thread):
         for k in range(0, smoothness):
             t = k / smoothness
 
-            if t < 0.3:  # Premier segment avec accélération
-                eased_t = self.interpolate_coordinates_acceleration(t / 0.3)
-            elif t < 0.7:  # Deuxième segment constant
-                eased_t = self.interpolate_coordinates_constant((t - 0.3) / 0.4)
-            else:  # Troisième segment avec décélération
-                eased_t = self.interpolate_coordinates_deceleration((t - 0.7) / 0.3)
+            if t < 0.3:
+                eased_t = self.interpolate_coordinates_acceleration(
+                    random.uniform(0.2, 0.8)
+                )
+            elif t < 0.7:
+                eased_t = self.interpolate_coordinates_constant(
+                    random.uniform(0.2, 0.8)
+                )
+            else:
+                eased_t = self.interpolate_coordinates_deceleration(
+                    random.uniform(0.2, 0.8)
+                )
 
             sum_x += x
             sum_y += y
@@ -540,7 +553,8 @@ class Aimbot(threading.Thread):
         if torch.cuda.is_available():
             Console.print("[+] Cuda is available")
 
-        print(self.detection_box)
+        print(f"Box: {self.detection_box}")
+        collect_pause = 0
 
         while True:
             self.model.conf = float(dpg.get_value("aimbot_confidence"))
@@ -557,10 +571,13 @@ class Aimbot(threading.Thread):
 
             fr = np.array(self.screen.grab(self.detection_box))
             frame = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
-            # frame = cv2.resize(fr, None, fx=0.5, fy=0.5)
+            frame_base = np.copy((frame))
+
             start_time = time.perf_counter()
 
+            st = time.time()
             results = self.model(frame)
+            print("model", (time.time() - st))
 
             if len(results.xyxy[0]) != 0:
                 least_crosshair_dist = closest_detection = player_in_frame = False
@@ -697,6 +714,23 @@ class Aimbot(threading.Thread):
             )
 
             cv2.imshow("AI", frame)
+
+            if (
+                bool(dpg.get_value("datacollect_enabled"))
+                and time.perf_counter() - collect_pause > 1
+                and self.is_targeted()
+                and self.is_aimbot_enabled()
+                and not player_in_frame
+                and int(conf * 100) >= float(dpg.get_value("data_confidence"))
+            ):
+                if bool(
+                    dpg.get_value("datacollect_require_lock")
+                ) and not self.is_target_locked(absolute_head_X, absolute_head_Y):
+                    continue
+
+                cv2.imwrite(f"../assets/collected/{str(uuid.uuid4())}.jpg", frame_base)
+                collect_pause = time.perf_counter()
+
             if cv2.waitKey(1) & 0xFF == ord("0"):
                 break
 
