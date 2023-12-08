@@ -1,8 +1,9 @@
-import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api
+import json, os, ctypes, torch, threading, mss, cv2, time, math, win32api, random
 import dearpygui.dearpygui as dpg
 import numpy as np
 
 __config__ = json.loads(open("../script/config.json", "r+").read())
+
 
 class Console:
     @staticmethod
@@ -195,6 +196,7 @@ class Gui(threading.Thread):
                                 max_value=100,
                                 tag="behaviours_smooth",
                             )
+
                             # dpg.add_slider_float(label="speed", default_value=0.80, max_value=100, tag="behaviours_speed")
                             # dpg.add_radio_button(label="algorithm", items=("direct", "Bézier"), tag="behaviours_algorithm")
 
@@ -348,15 +350,25 @@ class MouseInput(ctypes.Structure):
 
 
 class Input_I(ctypes.Union):
-    _fields_ = [("ki", KeyBdInput), ("mi", MouseInput), ("hi", HardwareInput)]
+    _fields_ = [
+        ("ki", KeyBdInput),
+        ("mi", MouseInput),
+        ("hi", HardwareInput),
+    ]
 
 
 class Input(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_ulong), ("ii", Input_I)]
+    _fields_ = [
+        ("type", ctypes.c_ulong),
+        ("ii", Input_I),
+    ]
 
 
 class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+    _fields_ = [
+        ("x", ctypes.c_long),
+        ("y", ctypes.c_long),
+    ]
 
 
 class Aimbot(threading.Thread):
@@ -389,7 +401,7 @@ class Aimbot(threading.Thread):
         self.extra = ctypes.c_ulong(0)
         self.ii_ = Input_I()
 
-        self.mouse_delay = 0.0009 
+        self.mouse_delay = 0.0009
 
         self.sens_config = __config__["sensitivity"]
 
@@ -426,61 +438,71 @@ class Aimbot(threading.Thread):
             else False
         )
 
-    def move_crosshair(self, x, y):
-        if self.is_targeted():
-            scale = self.sens_config["targeting_scale"]
-        else:
+    def move_crosshair(self, target_x, target_y):
+        if not self.is_targeted():
             return
 
-        smooth = (
-            self.interpolate_coordinates_from_center(
-                (x, y),
-                scale,
-                int(dpg.get_value("behaviours_smooth")),
-            )
-            if int(dpg.get_value("behaviours_smooth")) != 0
-            else self.interpolate_coordinates_from_center_direct((x, y), scale)
+        scale = self.sens_config["targeting_scale"]
+
+        # Determine whether to use smooth movement or direct movement
+        smoothness = int(dpg.get_value("behaviours_smooth"))
+        coordinates_generator = self.interpolate_coordinates_from_center(
+            (target_x, target_y),
+            scale,
+            smoothness,
         )
 
-        for rel_x, rel_y in smooth:
-            self.ii_.mi = MouseInput(
-                rel_x, rel_y, 0, 0x0001, 0, ctypes.pointer(self.extra)
-            )
-
-            input_obj = Input(ctypes.c_ulong(0), self.ii_)
-
-            ctypes.windll.user32.SendInput(
-                1,
-                ctypes.byref(input_obj),
-                ctypes.sizeof(input_obj),
-            )
-
+        # Move the mouse crosshair
+        for rel_x, rel_y in coordinates_generator:
+            self.move_mouse(rel_x, rel_y)
             self.sleep(self.mouse_delay)
 
-    # generator yields pixel tuples for relative movement
-    def ease_out_quad(self, t):
+    def move_mouse(self, rel_x, rel_y):
+        self.ii_.mi = MouseInput(rel_x, rel_y, 0, 0x0001, 0, ctypes.pointer(self.extra))
+
+        input_obj = Input(ctypes.c_ulong(0), self.ii_)
+
+        ctypes.windll.user32.SendInput(
+            1,
+            ctypes.byref(input_obj),
+            ctypes.sizeof(input_obj),
+        )
+
+    def cubic_ease_out(self, t):
+        return 1 - (1 - t) ** float(dpg.get_value("behaviours_smooth"))
+
+    def bezier_cubic(self, t, p0, p1, p2, p3):
+        # Formule de la courbe de Bézier cubique
+        """
+        P0 ---------- P1
+               \
+                \
+                 \
+                  \
+                   \
+                    P2 ---------- P3
+        """
+        return (
+            (1 - t) ** 3 * p0
+            + 3 * (1 - t) ** 2 * t * p1
+            + 3 * (1 - t) * t**2 * p2
+            + t**3 * p3
+        )
+
+    def interpolate_coordinates_acceleration(self, t):
+        # Fonction d'interpolation avec accélération au début
+        return t**2
+
+    def interpolate_coordinates_constant(self, t):
+        # Fonction d'interpolation constante
+        return t
+
+    def interpolate_coordinates_deceleration(self, t):
+        # Fonction d'interpolation avec décélération à la fin
         return 1 - (1 - t) ** 2
 
-    def interpolate_coordinates_from_center_direct(self, absolute_coordinates, scale):
-        diff_x = (absolute_coordinates[0] - 960) * scale / self.pixel_increment
-        diff_y = (absolute_coordinates[1] - 540) * scale / self.pixel_increment
-        length = int(math.dist((0, 0), (diff_x, diff_y)))
-        if length == 0:
-            return
-        unit_x = (diff_x / length) * self.pixel_increment
-        unit_y = (diff_y / length) * self.pixel_increment
-        x = y = sum_x = sum_y = 0
-        for k in range(0, length):
-            sum_x += x
-            sum_y += y
-            x, y = round(unit_x * k - sum_x), round(unit_y * k - sum_y)
-            yield x, y
-
     def interpolate_coordinates_from_center(
-        self,
-        absolute_coordinates,
-        scale,
-        smoothness,
+        self, absolute_coordinates, scale, smoothness
     ):
         diff_x = (
             (absolute_coordinates[0] - self.screen_x) * scale / self.pixel_increment
@@ -493,19 +515,21 @@ class Aimbot(threading.Thread):
         if length == 0:
             return
 
-        # Calculate fixed unit vectors without speed_factor
         unit_x = (diff_x / length) * self.pixel_increment
         unit_y = (diff_y / length) * self.pixel_increment
 
         x = y = sum_x = sum_y = 0
 
-        for k in range(0, length):
-            t = k / length
-            eased_t = self.ease_out_quad(t)
+        # Divisez le mouvement en trois segments avec des points de contrôle spécifiques pour chaque segment
+        for k in range(0, smoothness):
+            t = k / smoothness
 
-            # Adjust the easing function using the smoothness parameter
-            smoothed_t = t ** (smoothness / 100.0)
-            eased_t = self.ease_out_quad(smoothed_t)
+            if t < 0.3:  # Premier segment avec accélération
+                eased_t = self.interpolate_coordinates_acceleration(t / 0.3)
+            elif t < 0.7:  # Deuxième segment constant
+                eased_t = self.interpolate_coordinates_constant((t - 0.3) / 0.4)
+            else:  # Troisième segment avec décélération
+                eased_t = self.interpolate_coordinates_deceleration((t - 0.7) / 0.3)
 
             sum_x += x
             sum_y += y
@@ -601,7 +625,7 @@ class Aimbot(threading.Thread):
                             closest_detection["relative_head_X"],
                             closest_detection["relative_head_Y"],
                         ),
-                        5,
+                        int(dpg.get_value("triggerbot_treshold")),
                         (115, 244, 113),
                         -1,
                     )
