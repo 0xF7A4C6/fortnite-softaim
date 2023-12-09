@@ -14,7 +14,7 @@ def load_yolov5_model():
     return model
 
 
-def clean_dataset(dataset_path):
+def clean_dataset(dataset_path: str):
     dataset_path = Path(dataset_path)
 
     images_folder = dataset_path / "images"
@@ -26,7 +26,7 @@ def clean_dataset(dataset_path):
     deleted_labels = 0
     deleted_images = 0
     st = time.time()
-    
+
     for image_file in tqdm(image_files, desc="Cleaning Dataset (Images)"):
         label_path = labels_folder / (image_file + ".txt")
         if not label_path.exists():
@@ -50,18 +50,24 @@ def evaluate_model(model, img_rgb):
 
 def generate_yolo_labels(
     model,
-    images_folder,
-    output_dataset_path,
-    conf_threshold=0.70,
-    augment=False,
-    num_variations=1,
+    images_folder: str,
+    output_dataset_path: Path,
+    conf_threshold: float = 0.70,
+    augment: bool = False,
+    num_variations: int = 1,
 ):
     images_folder = Path(images_folder)
     output_images_path = output_dataset_path / "images"
     output_labels_path = output_dataset_path / "labels"
 
-    output_images_path.mkdir(parents=True, exist_ok=True)
-    output_labels_path.mkdir(parents=True, exist_ok=True)
+    output_images_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    output_labels_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     image_paths = glob.glob(str(images_folder / "*.jpg")) + glob.glob(
         str(images_folder / "*.png")
@@ -70,18 +76,27 @@ def generate_yolo_labels(
     transform = A.Compose(
         [
             A.Blur(
-                blur_limit=(3, 7),
+                blur_limit=(
+                    3,
+                    7,
+                ),
                 p=0.2,
             ),
             A.GaussNoise(
-                var_limit=(10, 50),
+                var_limit=(
+                    10,
+                    50,
+                ),
                 p=0.2,
             ),
             A.HorizontalFlip(
                 p=0.2,
             ),
             A.Rotate(
-                limit=(-45, 45),
+                limit=(
+                    -45,
+                    45,
+                ),
                 p=0.2,
             ),
             A.RandomBrightnessContrast(
@@ -143,6 +158,7 @@ def generate_yolo_labels(
                 label_file_path = output_labels_path / (
                     f"augmented_{variation}_{Path(image_path).stem}.txt"
                 )
+                
                 with open(label_file_path, "w") as label_file:
                     label_file.write(label_content)
 

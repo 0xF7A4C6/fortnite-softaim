@@ -100,19 +100,13 @@ class Gui(threading.Thread):
 
     def run(self):
         dpg.create_context()
-        dpg.create_viewport(title="AIm", decorated=True, width=380, height=650)
+        dpg.create_viewport(title="AIm", decorated=True, width=380, height=650,)
 
         with dpg.window(tag="Primary Window"):
             with dpg.tab_bar():
                 with dpg.tab(label="Configuration"):
                     with dpg.tree_node(label="Visual"):
                         with dpg.tree_node(label="FOV"):
-                            dpg.add_checkbox(
-                                label="Enabled",
-                                tag="fov_enabled",
-                                # callback=self.overlay.show_fov,
-                            )
-
                             dpg.add_slider_float(
                                 label="FOV",
                                 default_value=350,
@@ -120,27 +114,6 @@ class Gui(threading.Thread):
                                 min_value=100,
                                 tag="fov_value",
                             )
-
-                        """with dpg.tree_node(label="ESP"):
-                            dpg.add_checkbox(
-                                label="Enabled",
-                                tag="esp_enabled",
-                            )
-
-                            dpg.add_checkbox(
-                                label="Confidence",
-                                tag="esp_confidence",
-                            )
-
-                            dpg.add_checkbox(
-                                label="Optimal path",
-                                tag="esp_path",
-                            )
-
-                            dpg.add_checkbox(
-                                label="Tracers",
-                                tag="esp_tracers",
-                            )"""
 
                     with dpg.tree_node(label="Aimbot"):
                         dpg.add_slider_float(
@@ -223,95 +196,205 @@ class Gui(threading.Thread):
 
             with dpg.theme() as global_theme:
                 with dpg.theme_component(dpg.mvAll):
-                    # mvAll (all components)
-                    dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (25, 25, 33, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_MenuBarBg, (41, 41, 54, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_Border, (112, 94, 156, 74))
-                    dpg.add_theme_color(dpg.mvThemeCol_BorderShadow, (0, 0, 0, 61))
-
-                    dpg.add_theme_color(dpg.mvThemeCol_Header, (33, 33, 43, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_HeaderHovered, (49, 51, 63, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_HeaderActive, (41, 41, 54, 255))
-
-                    dpg.add_theme_color(dpg.mvThemeCol_PopupBg, (25, 25, 33, 235))
-
-                    dpg.add_theme_color(dpg.mvPlotCol_FrameBg, (33, 33, 43, 255))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_FrameBgHovered, (49, 51, 63, 255)
-                    )
-                    dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (41, 41, 54, 255))
-
-                    dpg.add_theme_color(dpg.mvThemeCol_TitleBg, (41, 41, 54, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_TitleBgActive, (41, 41, 54, 255))
-                    dpg.add_theme_color(
-                        dpg.mvThemeCol_TitleBgCollapsed, (41, 41, 54, 255)
-                    )
-
-                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarBg, (25, 25, 33, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ScrollbarGrab, (41, 41, 54, 255))
-                    dpg.add_theme_color(
-                        dpg.mvThemeCol_ScrollbarGrabActive, (49, 51, 63, 255)
+                        dpg.mvThemeCol_WindowBg,
+                        (25, 25, 33, 255),
                     )
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_ScrollbarGrabActive, (61, 61, 82, 255)
+                        dpg.mvThemeCol_MenuBarBg,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_Border,
+                        (112, 94, 156, 74),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_BorderShadow,
+                        (0, 0, 0, 61),
                     )
 
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_DockingPreview, (112, 94, 156, 255)
+                        dpg.mvThemeCol_Header,
+                        (33, 33, 43, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_HeaderHovered,
+                        (49, 51, 63, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_HeaderActive,
+                        (41, 41, 54, 255),
+                    )
+
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_PopupBg,
+                        (25, 25, 33, 235),
+                    )
+
+                    dpg.add_theme_color(
+                        dpg.mvPlotCol_FrameBg,
+                        (33, 33, 43, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_FrameBgHovered,
+                        (49, 51, 63, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_FrameBgActive,
+                        (41, 41, 54, 255),
+                    )
+
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TitleBg,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TitleBgActive,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TitleBgCollapsed,
+                        (41, 41, 54, 255),
+                    )
+
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ScrollbarBg,
+                        (25, 25, 33, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ScrollbarGrab,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ScrollbarGrabActive,
+                        (49, 51, 63, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ScrollbarGrabActive,
+                        (61, 61, 82, 255),
+                    )
+
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_DockingPreview,
+                        (112, 94, 156, 255),
                     )
 
                     # the theme styles etc
-                    dpg.add_theme_style(dpg.mvStyleVar_TabRounding, 4)
-                    dpg.add_theme_style(dpg.mvStyleVar_ScrollbarRounding, 9)
-                    dpg.add_theme_style(dpg.mvStyleVar_WindowRounding, 7)
-                    dpg.add_theme_style(dpg.mvStyleVar_GrabRounding, 3)
-                    dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 3)
-                    dpg.add_theme_style(dpg.mvStyleVar_PopupRounding, 4)
-                    dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 4)
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_TabRounding,
+                        4,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_ScrollbarRounding,
+                        9,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_WindowRounding,
+                        7,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_GrabRounding,
+                        3,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_FrameRounding,
+                        3,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_PopupRounding,
+                        4,
+                    )
+                    dpg.add_theme_style(
+                        dpg.mvStyleVar_ChildRounding,
+                        4,
+                    )
 
                 with dpg.theme_component(dpg.mvText):
-                    dpg.add_theme_color(dpg.mvThemeCol_Text, (255, 255, 255, 255))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_TextDisabled, (128, 128, 128, 255)
+                        dpg.mvThemeCol_Text,
+                        (255, 255, 255, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TextDisabled,
+                        (128, 128, 128, 255),
                     )
 
                 with dpg.theme_component(dpg.mvButton):
-                    dpg.add_theme_color(dpg.mvThemeCol_Button, (33, 33, 43, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (49, 51, 63, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (41, 41, 54, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (188, 148, 250, 255))
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_Button,
+                        (33, 33, 43, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ButtonHovered,
+                        (49, 51, 63, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ButtonActive,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_CheckMark,
+                        (188, 148, 250, 255),
+                    )
 
                 with dpg.theme_component(dpg.mvSliderInt):
-                    dpg.add_theme_color(dpg.mvThemeCol_SliderGrab, (112, 94, 156, 138))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_SliderGrabActive, (188, 148, 250, 138)
+                        dpg.mvThemeCol_SliderGrab,
+                        (112, 94, 156, 138),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_SliderGrabActive,
+                        (188, 148, 250, 138),
                     )
 
                 with dpg.theme_component(dpg.mvTab):
-                    dpg.add_theme_color(dpg.mvThemeCol_Tab, (41, 41, 54, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_TabHovered, (61, 61, 82, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_TabActive, (51, 56, 69, 255))
-                    dpg.add_theme_color(dpg.mvThemeCol_TabUnfocused, (41, 41, 54, 255))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_TabUnfocusedActive, (41, 41, 54, 255)
+                        dpg.mvThemeCol_Tab,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TabHovered,
+                        (61, 61, 82, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TabActive,
+                        (51, 56, 69, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TabUnfocused,
+                        (41, 41, 54, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_TabUnfocusedActive,
+                        (41, 41, 54, 255),
                     )
 
                 with dpg.theme_component(dpg.mvSeparator):
-                    dpg.add_theme_color(dpg.mvThemeCol_Separator, (112, 94, 156, 255))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_SeparatorHovered, (188, 148, 250, 255)
+                        dpg.mvThemeCol_Separator,
+                        (112, 94, 156, 255),
                     )
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_SeparatorActive, (214, 148, 255, 255)
+                        dpg.mvThemeCol_SeparatorHovered,
+                        (188, 148, 250, 255),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_SeparatorActive,
+                        (214, 148, 255, 255),
                     )
 
                 with dpg.theme_component(dpg.mvResizeHandler):
-                    dpg.add_theme_color(dpg.mvThemeCol_ResizeGrip, (112, 94, 156, 74))
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_ResizeGripHovered, (188, 148, 250, 74)
+                        dpg.mvThemeCol_ResizeGrip,
+                        (112, 94, 156, 74),
                     )
                     dpg.add_theme_color(
-                        dpg.mvThemeCol_ResizeGripActive, (214, 148, 255, 74)
+                        dpg.mvThemeCol_ResizeGripHovered,
+                        (188, 148, 250, 74),
+                    )
+                    dpg.add_theme_color(
+                        dpg.mvThemeCol_ResizeGripActive,
+                        (214, 148, 255, 74),
                     )
 
         dpg.bind_theme(global_theme)
@@ -378,7 +461,7 @@ class POINT(ctypes.Structure):
 
 
 class Aimbot(threading.Thread):
-    def __init__(self):
+    def __init__(self) -> None:
         self.fov = 350
         self.resize = self.fov
 
@@ -409,17 +492,16 @@ class Aimbot(threading.Thread):
         self.ii_ = Input_I()
 
         self.mouse_delay = 0.0001
-
         self.sens_config = __config__["sensitivity"]
 
         threading.Thread.__init__(self)
 
-    def left_click(self):
-        ctypes.windll.user32.mouse_event(0x0002)  # left mouse down
+    def left_click(self) -> None:
+        ctypes.windll.user32.mouse_event(0x0002)
         self.sleep(0.0001)
-        ctypes.windll.user32.mouse_event(0x0004)  # left mouse up
+        ctypes.windll.user32.mouse_event(0x0004)
 
-    def sleep(self, duration, get_now=time.perf_counter):
+    def sleep(self, duration: float, get_now: float = time.perf_counter) -> None:
         if duration == 0:
             return
 
@@ -429,13 +511,13 @@ class Aimbot(threading.Thread):
         while now < end:
             now = get_now()
 
-    def is_aimbot_enabled(self):
+    def is_aimbot_enabled(self) -> bool:
         return bool(dpg.get_value("aimbot_enabled"))
 
-    def is_targeted(self):
+    def is_targeted(self) -> bool:
         return True if win32api.GetKeyState(0x02) in (-127, -128) else False
 
-    def is_target_locked(self, x, y):
+    def is_target_locked(self, x: int, y: int) -> None:
         threshold = int(dpg.get_value("triggerbot_treshold"))
 
         return (
@@ -445,7 +527,7 @@ class Aimbot(threading.Thread):
             else False
         )
 
-    def move_crosshair(self, target_x, target_y):
+    def move_crosshair(self, target_x: int, target_y: int) -> None:
         if not self.is_targeted():
             return
 
@@ -464,10 +546,20 @@ class Aimbot(threading.Thread):
             self.move_mouse(rel_x, rel_y)
             self.sleep(self.mouse_delay)
 
-    def move_mouse(self, rel_x, rel_y):
-        self.ii_.mi = MouseInput(rel_x, rel_y, 0, 0x0001, 0, ctypes.pointer(self.extra))
+    def move_mouse(self, rel_x: int, rel_y: int) -> None:
+        self.ii_.mi = MouseInput(
+            rel_x,
+            rel_y,
+            0,
+            0x0001,
+            0,
+            ctypes.pointer(self.extra),
+        )
 
-        input_obj = Input(ctypes.c_ulong(0), self.ii_)
+        input_obj = Input(
+            ctypes.c_ulong(0),
+            self.ii_,
+        )
 
         ctypes.windll.user32.SendInput(
             1,
@@ -478,7 +570,7 @@ class Aimbot(threading.Thread):
     def cubic_ease_out(self, t):
         return 1 - (1 - t) ** float(dpg.get_value("behaviours_smooth"))
 
-    def bezier_cubic(self, t, p0, p1, p2, p3):
+    def bezier_cubic(self, t: float, p0: float, p1: float, p2: float, p3: float):
         # Formule de la courbe de Bézier cubique
         """
         P0 ---------- P1
@@ -517,7 +609,12 @@ class Aimbot(threading.Thread):
         diff_y = (
             (absolute_coordinates[1] - self.screen_y) * scale / self.pixel_increment
         )
-        length = int(math.dist((0, 0), (diff_x, diff_y)))
+        length = int(
+            math.dist(
+                (0, 0),
+                (diff_x, diff_y),
+            ),
+        )
 
         if length == 0:
             return
@@ -533,15 +630,24 @@ class Aimbot(threading.Thread):
 
             if t < 0.3:
                 eased_t = self.interpolate_coordinates_acceleration(
-                    random.uniform(0.2, 0.8)
+                    random.uniform(
+                        0.2,
+                        0.8,
+                    )
                 )
             elif t < 0.7:
                 eased_t = self.interpolate_coordinates_constant(
-                    random.uniform(0.2, 0.8)
+                    random.uniform(
+                        0.2,
+                        0.8,
+                    )
                 )
             else:
                 eased_t = self.interpolate_coordinates_deceleration(
-                    random.uniform(0.2, 0.8)
+                    random.uniform(
+                        0.2,
+                        0.8,
+                    )
                 )
 
             sum_x += x
