@@ -100,7 +100,12 @@ class Gui(threading.Thread):
 
     def run(self):
         dpg.create_context()
-        dpg.create_viewport(title="AIm", decorated=True, width=380, height=650,)
+        dpg.create_viewport(
+            title="AIm",
+            decorated=True,
+            width=380,
+            height=650,
+        )
 
         with dpg.window(tag="Primary Window"):
             with dpg.tab_bar():
@@ -168,7 +173,7 @@ class Gui(threading.Thread):
                                 label="smooth",
                                 default_value=8,
                                 max_value=100,
-                                min_value=1,
+                                min_value=0,
                                 tag="behaviours_smooth",
                             )
 
@@ -535,11 +540,18 @@ class Aimbot(threading.Thread):
 
         # Determine whether to use smooth movement or direct movement
         smoothness = int(dpg.get_value("behaviours_smooth"))
-        coordinates_generator = self.interpolate_coordinates_from_center(
-            (target_x, target_y),
-            scale,
-            smoothness,
-        )
+
+        if smoothness != 0:
+            coordinates_generator = self.interpolate_coordinates_from_center(
+                (target_x, target_y),
+                scale,
+                smoothness,
+            )
+        else:
+            coordinates_generator = self.interpolate_coordinates_from_center_blatant(
+                (target_x, target_y),
+                scale,
+            )
 
         # Move the mouse crosshair
         for rel_x, rel_y in coordinates_generator:
@@ -653,6 +665,26 @@ class Aimbot(threading.Thread):
             sum_x += x
             sum_y += y
             x, y = round(unit_x * eased_t - sum_x), round(unit_y * eased_t - sum_y)
+            yield x, y
+
+    def interpolate_coordinates_from_center_blatant(absolute_coordinates, scale):
+        diff_x = (absolute_coordinates[0] - 960) * scale / Aimbot.pixel_increment
+        diff_y = (absolute_coordinates[1] - 540) * scale / Aimbot.pixel_increment
+
+        length = int(math.dist((0, 0), (diff_x, diff_y)))
+
+        if length == 0:
+            return
+
+        unit_x = (diff_x / length) * Aimbot.pixel_increment
+        unit_y = (diff_y / length) * Aimbot.pixel_increment
+
+        x = y = sum_x = sum_y = 0
+        for k in range(0, length):
+            sum_x += x
+            sum_y += y
+
+            x, y = round(unit_x * k - sum_x), round(unit_y * k - sum_y)
             yield x, y
 
     def run(self):
