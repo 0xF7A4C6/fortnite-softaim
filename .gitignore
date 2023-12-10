@@ -162,4 +162,5 @@ ultralytics
 *.pt
 *.jpg
 test/*
-*.txt
+test
+src/main_old.py
