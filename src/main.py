@@ -101,7 +101,7 @@ class Gui(threading.Thread):
     def run(self):
         dpg.create_context()
         dpg.create_viewport(
-            title="AIm",
+            title="Deep aim",
             decorated=True,
             width=380,
             height=650,
@@ -667,17 +667,17 @@ class Aimbot(threading.Thread):
             x, y = round(unit_x * eased_t - sum_x), round(unit_y * eased_t - sum_y)
             yield x, y
 
-    def interpolate_coordinates_from_center_blatant(absolute_coordinates, scale):
-        diff_x = (absolute_coordinates[0] - 960) * scale / Aimbot.pixel_increment
-        diff_y = (absolute_coordinates[1] - 540) * scale / Aimbot.pixel_increment
+    def interpolate_coordinates_from_center_blatant(self, absolute_coordinates, scale):
+        diff_x = (absolute_coordinates[0] - 960) * scale / self.pixel_increment
+        diff_y = (absolute_coordinates[1] - 540) * scale / self.pixel_increment
 
         length = int(math.dist((0, 0), (diff_x, diff_y)))
 
         if length == 0:
             return
 
-        unit_x = (diff_x / length) * Aimbot.pixel_increment
-        unit_y = (diff_y / length) * Aimbot.pixel_increment
+        unit_x = (diff_x / length) * self.pixel_increment
+        unit_y = (diff_y / length) * self.pixel_increment
 
         x = y = sum_x = sum_y = 0
         for k in range(0, length):
