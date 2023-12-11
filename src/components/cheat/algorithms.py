@@ -42,13 +42,18 @@ class Algorithms:
         )
 
     @staticmethod
-    def box_to_pos(conf, box: list, fov: int, aimbot_pos: int, least_crosshair_dist, closest_detection) -> tuple[dict, float]:
+    def box_to_pos(
+        conf,
+        box: list,
+        fov: int,
+        aimbot_pos: int,
+    ) -> tuple[dict, float]:
         x1y1 = [int(x.item()) for x in box[:2]]
         x2y2 = [int(x.item()) for x in box[2:]]
 
         x1, y1, x2, y2, conf = *x1y1, *x2y2, conf.item()
         height = y2 - y1
-        
+
         relative_head_X, relative_head_Y = int((x1 + x2) / 2), int(
             (y1 + y2) / 2 - height / aimbot_pos
         )
@@ -60,20 +65,14 @@ class Algorithms:
             (fov / 2, fov / 2),
         )
 
-        if not least_crosshair_dist:
-            least_crosshair_dist = crosshair_dist
-
-        if crosshair_dist <= least_crosshair_dist and not own_player:
-            least_crosshair_dist = crosshair_dist
-            closest_detection = {
-                "x1y1": x1y1,
-                "x2y2": x2y2,
-                "relative_head_X": relative_head_X,
-                "relative_head_Y": relative_head_Y,
-                "conf": conf,
-            }
-
-        return (closest_detection, least_crosshair_dist)
+        return (
+            crosshair_dist,
+            relative_head_X,
+            relative_head_Y,
+            own_player,
+            x1y1,
+            x2y2,
+        )
 
     @staticmethod
     def interpolate_coordinates_from_center_blatant(absolute_coordinates, scale):

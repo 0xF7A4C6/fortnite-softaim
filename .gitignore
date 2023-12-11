@@ -159,10 +159,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea
 ultralytics
-*.pt
 *.jpg
 test/*
 test
 src/main_old.py
 src/labeler_old.py
 dataset_test
+*.json

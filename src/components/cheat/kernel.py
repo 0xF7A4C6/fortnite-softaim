@@ -52,22 +52,18 @@ class Kernel(Thread):
 
     def __is_target_locked(self, threshold: int, x: int, y: int) -> None:
         some_scaling_factor = 0.5
-        reference_point = (self._screen_x, self._screen_y)
+        ref_point = (self._screen_x, self._screen_y)
 
-        distance = hypot(x - reference_point[0], y - reference_point[1])
-        
-        # Ajuster dynamiquement le seuil en fonction de la distance
-        adjusted_threshold = threshold + int(distance * some_scaling_factor)
+        distance = hypot(x - ref_point[0], y - ref_point[1])
+        scale_threshold = threshold + int(distance * some_scaling_factor)
 
-        if adjusted_threshold > 15:
-            adjusted_threshold = 15
-
-        logger.debug(f"ajusted {adjusted_threshold}")
+        if scale_threshold > 15:
+            scale_threshold = 15
 
         return (
             True
-            if reference_point[0] - adjusted_threshold <= x <= reference_point[0] + adjusted_threshold
-            and reference_point[1] - adjusted_threshold <= y <= reference_point[1] + adjusted_threshold
+            if ref_point[0] - scale_threshold <= x <= ref_point[0] + scale_threshold
+            and ref_point[1] - scale_threshold <= y <= ref_point[1] + scale_threshold
             else False
         )
 
@@ -85,41 +81,55 @@ class Kernel(Thread):
         logger.debug(detection_box)
 
         # temp dpg
-        triggerbot_enabled = True
+        triggerbot_enabled = False
         aimbot_enabled = True
-        aimbot_pos = 40
+        aimbot_pos = 20
         threshold_trigger = 7
 
         while self._runing:
             frame = np.array(self._screen.grab(detection_box))
 
-            result, img, threshold, output = self._model.evaluate(frame)
+            result, _, threshold, _ = self._model.evaluate(frame)
             if len(result) == 0:
                 continue
 
-            least_crosshair_dist = closest_detection = player_in_frame = False
+            least_crosshair_dist = False
+            closest_detection = False
 
             for *box, conf, _ in result:
                 if conf < threshold:
                     logger.debug(f"bellow threshold {conf * 100}")
                     continue
 
-                closest_detection, least_crosshair_dist = Algorithms.box_to_pos(
+                (
+                    crosshair_dist,
+                    head_x,
+                    head_y,
+                    own_player,
+                    x1y1,
+                    x2y2,
+                ) = Algorithms.box_to_pos(
                     conf=conf,
                     box=box,
                     fov=fov,
                     aimbot_pos=aimbot_pos,
-                    least_crosshair_dist=least_crosshair_dist,
-                    closest_detection=closest_detection,
                 )
 
-                logger.debug(f"least crossair dist: {least_crosshair_dist}")
-            logger.debug("_________________________")
+                if not crosshair_dist:
+                    least_crosshair_dist = crosshair_dist
+
+                if crosshair_dist <= least_crosshair_dist and not own_player:
+                    least_crosshair_dist = crosshair_dist
+                    closest_detection = {
+                        "x1y1": x1y1,
+                        "x2y2": x2y2,
+                        "relative_head_X": head_x,
+                        "relative_head_Y": head_y,
+                        "conf": conf,
+                    }
 
             if not closest_detection:
                 continue
-
-            logger.debug(closest_detection)
 
             absolute_head_X, absolute_head_Y = (
                 closest_detection["relative_head_X"] + detection_box["left"],

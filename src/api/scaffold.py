@@ -84,11 +84,12 @@ class Scaffold:
     def aimbot(
         dataset: str,
         pt_file: str = "../assets/best.pt",
+        confidence: float = 0.70,
     ):
         """
         Start the aimbot
 
-        Usage: python main.py aimbot --dataset=path/to/dataset
+        Usage: python main.py aimbot --dataset=path/to/dataset --confidence=0.75
 
         Args:
             dataset (str): Path to the YOLOv5 dataset folder.
@@ -109,7 +110,7 @@ class Scaffold:
         data.model = Model(
             path=Path(pt_file),
             output_labels_path=output_labels_path,
-            conf_threshold=0.60,
+            conf_threshold=confidence,
         )
 
         Kernel(

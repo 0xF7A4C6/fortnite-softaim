@@ -53,7 +53,6 @@ class Gui(threading.Thread):
                             tag="aimbot_enabled",
                             default_value=True,
                         )
-                        # dpg.add_radio_button(("Head", "Body", "Feet"), tag="aimbot_position")
 
                     with dpg.tree_node(label="Trigger bot"):
                         dpg.add_slider_int(
@@ -84,9 +83,6 @@ class Gui(threading.Thread):
                                 min_value=0,
                                 tag="behaviours_smooth",
                             )
-
-                            # dpg.add_slider_float(label="speed", default_value=0.80, max_value=100, tag="behaviours_speed")
-                            # dpg.add_radio_button(label="algorithm", items=("direct", "Bézier"), tag="behaviours_algorithm")
 
                     with dpg.tree_node(label="Data collection"):
                         with dpg.group(label="Data collection"):

@@ -73,11 +73,32 @@ class Driver:
         )
 
     def move_crosshair(self, scale: float, target_x: int, target_y: int) -> None:
+        """
+        Moves the crosshair towards a target position using an interpolation algorithm.
+
+        Parameters:
+        - scale (float): Scaling factor to adjust the movement speed.
+        - target_x (int): X-coordinate of the target position.
+        - target_y (int): Y-coordinate of the target position.
+
+        Notes:
+        - The function checks if the left mouse button is pressed before moving the crosshair.
+        - The movement is logged at the DEBUG level.
+        - The movement is performed using an interpolation algorithm to smoothly transition towards the target position.
+        - The function relies on the __move_mouse and __sleep methods.
+
+        Example:
+        ```python
+        # Assuming an instance of your class is created as 'instance'
+        instance.move_crosshair(scale=0.5, target_x=100, target_y=150)
+        ```
+
+        This example would move the crosshair towards the target position (100, 150) with a speed scaled by 0.5.
+        """
         if not win32api.GetKeyState(0x02) in (-127, -128):
             return
 
-        logger.debug(f"move_crosshair ({target_x}, {target_y})")
-
+        logger.debug(f"Moving crosshair to ({target_x}, {target_y})")
         coordinates_generator = Algorithms.interpolate_coordinates_from_center_blatant(
             (target_x, target_y),
             scale,

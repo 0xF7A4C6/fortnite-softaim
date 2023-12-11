@@ -38,7 +38,7 @@ class Labeler:
         if valid_detections:
             label_content = ""
             for det in valid_detections:
-                _, _, _, _, conf, cls = det
+                _, _, _, _, _, cls = det
                 label_content += f"{int(cls)} {((det[0]+det[2])/2)/input[1].shape[1]} {((det[1]+det[3])/2)/input[1].shape[0]} {abs(det[2]-det[0])/input[1].shape[1]} {abs(det[3]-det[1])/input[1].shape[0]}\n"
 
             label_file_path = input[3] / (f"{uuid.uuid4()}.txt")

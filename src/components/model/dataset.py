@@ -2,7 +2,6 @@ import albumentations as A
 from loguru import logger
 from pathlib import Path
 from tqdm import tqdm
-from enum import Enum
 import time
 import glob
 import cv2
@@ -104,7 +103,7 @@ class Dataset:
         num_variations: int = 1,
         conf_threshold: float = 0.75,
     ) -> None:
-        (output_images_path, output_labels_path, input_folder) = self.check()
+        (_, output_labels_path, input_folder) = self.check()
 
         self.model.output_labels_path = output_labels_path
         self.model.conf_threshold = conf_threshold
@@ -115,7 +114,6 @@ class Dataset:
 
         # todo: add as params?
         variation_chance = 0.3
-
         transform = A.Compose(
             [
                 A.Blur(
@@ -151,9 +149,7 @@ class Dataset:
         for image_path in tqdm(image_paths, desc="Processing Images"):
             img = cv2.imread(image_path)
 
-            # eval original image
             self.model.evaluate(img)
-
             if augment:
                 for _ in range(num_variations):
                     augmented = transform(image=img)

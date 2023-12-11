@@ -12,10 +12,12 @@ from ctypes import (
 PUL = POINTER(c_ulong)
 EXTRA = c_ulong(0)
 
+
 class MouseEvent(IntEnum):
     MOUSE_MOVE = 0x0001
     MOUSE_LEFT_DOWN = 0x0002
     MOUSE_LEFT_UP = 0x0004
+
 
 class KeyBdInput(Structure):
     _fields_ = [
