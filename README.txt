@@ -8,3 +8,6 @@ Preview:
 - https://streamable.com/ps9ddj
 - https://streamable.com/yl2x9r
 - https://streamable.com/6ygpxf
+
+Train model:
+  - https://github.com/0xF7A4C6/fortnite-cheat/releases/tag/dataset
