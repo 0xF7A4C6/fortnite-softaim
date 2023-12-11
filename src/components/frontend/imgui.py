@@ -60,7 +60,7 @@ class Gui(threading.Thread):
                             label="Treshold",
                             default_value=5,
                             max_value=25,
-                            tag="triggerbot_treshold",
+                            tag="triggerbot_threshold",
                         )
                         dpg.add_checkbox(
                             label="Enabled",

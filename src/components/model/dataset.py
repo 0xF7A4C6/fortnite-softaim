@@ -10,12 +10,6 @@ import cv2
 from components.model.model import Model
 
 
-class DatasetFolders(str, Enum):
-    ImageFolder = "images"
-    LabelFolder = "labels"
-    UnlabeledFolder = "input"
-
-
 class Dataset:
     def __init__(self, path: Path, model: Model) -> None:
         self.path = path
@@ -28,9 +22,9 @@ class Dataset:
         """
 
         for folders in (
-            DatasetFolders.ImageFolder,
-            DatasetFolders.LabelFolder,
-            DatasetFolders.UnlabeledFolder,
+            "images",
+            "labels",
+            "input",
         ):
             folder_path = self.path / folders
 
@@ -47,14 +41,14 @@ class Dataset:
         logger.info(f"Dataset initialized in {self.path.absolute()}.")
 
     @logger.catch
-    def __check(self) -> tuple[Path, Path, Path]:
+    def check(self) -> tuple[Path, Path, Path]:
         """
         Check Dataset folder integrity, create one if not found.
         """
 
-        images_folder = self.path / DatasetFolders.ImageFolder
-        labels_folder = self.path / DatasetFolders.LabelFolder
-        input_folder = self.path / DatasetFolders.UnlabeledFolder
+        images_folder = self.path / "images"
+        labels_folder = self.path / "labels"
+        input_folder = self.path / "input"
 
         if (
             not images_folder.exists()
@@ -77,7 +71,7 @@ class Dataset:
         Clean the dataset by removing orphaned label files.
         """
 
-        (images_folder, labels_folder, _) = self.__check()
+        (images_folder, labels_folder, _) = self.check()
 
         image_files = set([img.stem for img in images_folder.glob("*")])
         label_files = set([label.stem for label in labels_folder.glob("*")])
@@ -110,7 +104,7 @@ class Dataset:
         num_variations: int = 1,
         conf_threshold: float = 0.75,
     ) -> None:
-        (output_images_path, output_labels_path, input_folder) = self.__check()
+        (output_images_path, output_labels_path, input_folder) = self.check()
 
         self.model.output_labels_path = output_labels_path
         self.model.conf_threshold = conf_threshold

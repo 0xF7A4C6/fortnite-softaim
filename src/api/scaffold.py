@@ -7,6 +7,8 @@ import os
 
 from components.model.dataset import Dataset
 from components.utils.config import Config
+from components.cheat.kernel import Kernel
+from components.cheat.driver import Driver
 from components.model.model import Model
 
 
@@ -54,7 +56,7 @@ class Scaffold:
             num_variations (int, optional): Number of variations to create for each image. Defaults to 1.
             conf_threshold (float, optional): Minimum confidence threshold for bounding boxes. Defaults to 0.70.
         """
-        
+
         initialise()
 
         model = Model(
@@ -76,7 +78,7 @@ class Scaffold:
         if clean:
             data.clean()
             return
-    
+
     @staticmethod
     @logger.catch
     def aimbot(
@@ -92,15 +94,27 @@ class Scaffold:
             dataset (str): Path to the YOLOv5 dataset folder.
             pt_file (str): best.pt path.
         """
-        
+
         initialise()
 
-        model = Model(
-            path=Path(pt_file),
-        )
+        driver = Driver()
+        config = Config()
 
         data = Dataset(
             path=Path(dataset),
-            model=model,
+            model=None,
         )
-        
+
+        _, output_labels_path, _ = data.check()
+        data.model = Model(
+            path=Path(pt_file),
+            output_labels_path=output_labels_path,
+            conf_threshold=0.60,
+        )
+
+        Kernel(
+            model_instance=data.model,
+            dataset_instance=data,
+            config_instance=config,
+            driver_instance=driver,
+        ).run()

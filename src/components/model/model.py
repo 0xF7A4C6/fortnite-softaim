@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import cv2
 
-from .labeler import Labeler
+from components.model.labeler import Labeler
 
 
 class Model:
@@ -59,7 +59,7 @@ class Model:
         """
         Performs image evaluation using the YOLOv5 model on the preprocessed image.
 
-        Return: `tuple[ai_result, img_array, treshold, output_labels_path]`
+        Return: `tuple[ai_result, img_array, threshold, output_labels_path]`
         """
 
         return (
