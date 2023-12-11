@@ -20,41 +20,43 @@ class Dataset:
         Create dataset base folders tree
         """
 
-        images_path = self.path / "images"
-        images_path.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+        for folders in ("images", "labels", "input"):
+            folder_path = self.path / folders
 
-        labels_path = self.path / "labels"
-        labels_path.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+            if folder_path.exists():
+                continue
 
-        labeled_path = self.path / "labeled"
-        labeled_path.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+            folder_path.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            logger.debug(f"created folder: {folder_path.absolute()}")
+
+        logger.info(f"Dataset initialized in {self.path.absolute()}.")
 
     @logger.catch
-    def __check(self) -> tuple[Path, Path]:
+    def __check(self) -> tuple[Path, Path, Path]:
         """
         Check Dataset folder integrity, create one if not found.
         """
 
         images_folder = self.path / "images"
         labels_folder = self.path / "labels"
+        input_folder = self.path / "input"
 
-        if not images_folder.exists() or not labels_folder.exists():
-            self.__install()
+        if (
+            not images_folder.exists()
+            or not labels_folder.exists()
+            or not input_folder.exists()
+        ):
             logger.info(
-                f"Image or label files do not exist. Dataset initialized in {self.path.absolute()}."
+                "Dataset folders not found. Initializing dataset installation..."
             )
+            self.__install()
 
-        logger.info(f"Dataset found! ({images_folder}, {labels_folder})")
-        return (images_folder, labels_folder)
+        logger.info(f"Dataset found! ({images_folder}, {labels_folder}, {input_folder})")
+        return (images_folder, labels_folder, input_folder)
 
     @logger.catch
     def clean(self) -> None:
@@ -62,7 +64,7 @@ class Dataset:
         Clean the dataset by removing orphaned label files.
         """
 
-        (images_folder, labels_folder) = self.__check()
+        (images_folder, labels_folder, _) = self.__check()
 
         image_files = set([img.stem for img in images_folder.glob("*")])
         label_files = set([label.stem for label in labels_folder.glob("*")])
@@ -95,39 +97,30 @@ class Dataset:
         num_variations: int = 1,
         conf_threshold: float = 0.75,
     ) -> None:
-        (output_images_path, output_labels_path) = self.__check()
+        (output_images_path, output_labels_path, input_folder) = self.__check()
 
         self.model.output_labels_path = output_labels_path
         self.model.conf_threshold = conf_threshold
 
-        image_paths = glob.glob(str(output_images_path / "*.jpg")) + glob.glob(
-            str(output_images_path / "*.png")
+        image_paths = glob.glob(str(input_folder / "*.jpg")) + glob.glob(
+            str(input_folder / "*.png")
         )
 
         transform = A.Compose(
             [
                 A.Blur(
-                    blur_limit=(
-                        3,
-                        7,
-                    ),
+                    blur_limit=(3, 7),
                     p=0.2,
                 ),
                 A.GaussNoise(
-                    var_limit=(
-                        10,
-                        50,
-                    ),
+                    var_limit=(10, 50),
                     p=0.2,
                 ),
                 A.HorizontalFlip(
                     p=0.2,
                 ),
                 A.Rotate(
-                    limit=(
-                        -45,
-                        45,
-                    ),
+                    limit=(-45, 45),
                     p=0.2,
                 ),
                 A.RandomBrightnessContrast(

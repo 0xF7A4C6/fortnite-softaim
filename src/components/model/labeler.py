@@ -46,4 +46,8 @@ class Labeler:
             with open(label_file_path, "w") as label_file:
                 label_file.write(label_content)
 
-            cv2.imwrite(str(label_file_path.absolute()).replace('labels', 'labeled').replace('txt', 'jpg'), input[1])
+            img_path = (
+                str(label_file_path.absolute()).replace("labels", "images")
+            ).replace("txt", "jpg")
+
+            cv2.imwrite(img_path, input[1])

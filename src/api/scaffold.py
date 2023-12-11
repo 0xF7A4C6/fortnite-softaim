@@ -2,6 +2,7 @@ from typing import Optional
 from loguru import logger
 from pathlib import Path
 import warnings
+import logging
 import os
 
 from components.model.dataset import Dataset
@@ -11,7 +12,8 @@ from components.model.model import Model
 
 def initialise():
     os.system("cls||clear")
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning, module="albumentations")
+    logging.getLogger("yolov5").setLevel(logging.WARNING)
 
 
 class Scaffold:
@@ -41,7 +43,6 @@ class Scaffold:
         Build YOLOv5 dataset using collected data
 
         Usage: python main.py labelise --dataset=path/to/dataset
-        or: python main.py labelise --dataset=path/to/dataset
         or: python main.py labelise --dataset=dataset_test --augment --num_variations=5 --conf_threshold=0.50
 
         Args:
@@ -52,17 +53,21 @@ class Scaffold:
             num_variations (int, optional): Number of variations to create for each image. Defaults to 1.
             conf_threshold (float, optional): Minimum confidence threshold for bounding boxes. Defaults to 0.70.
         """
-
+        
         initialise()
 
         model = Model(
-            path=Path(pt_file).resolve(),
+            path=Path(pt_file),
         )
 
         data = Dataset(
             path=Path(dataset),
             model=model,
         )
+
+        if clean:
+            data.clean()
+            return
 
         data.labelise(
             augment=augment,
