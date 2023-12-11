@@ -34,16 +34,17 @@ class Scaffold:
     def labelise(
         dataset: str,
         pt_file: str = "../assets/best.pt",
-        clean: Optional[bool] = False,
+        clean: Optional[bool] = True,
+        label: Optional[bool] = True,
         augment: Optional[bool] = False,
         num_variations: Optional[int] = 1,
-        conf_threshold: Optional[float] = 0.70,
+        conf_threshold: Optional[float] = 0.75,
     ):
         """
         Build YOLOv5 dataset using collected data
 
         Usage: python main.py labelise --dataset=path/to/dataset
-        or: python main.py labelise --dataset=dataset_test --augment --num_variations=5 --conf_threshold=0.50
+        or: python main.py labelise --dataset=dataset_test --label --clean --augment --num_variations=5 --conf_threshold=0.50
 
         Args:
             dataset (str): Path to the YOLOv5 dataset folder.
@@ -65,12 +66,41 @@ class Scaffold:
             model=model,
         )
 
+        if label:
+            data.labelise(
+                augment=augment,
+                conf_threshold=conf_threshold,
+                num_variations=num_variations,
+            )
+
         if clean:
             data.clean()
             return
+    
+    @staticmethod
+    @logger.catch
+    def aimbot(
+        dataset: str,
+        pt_file: str = "../assets/best.pt",
+    ):
+        """
+        Start the aimbot
 
-        data.labelise(
-            augment=augment,
-            conf_threshold=conf_threshold,
-            num_variations=num_variations,
+        Usage: python main.py aimbot --dataset=path/to/dataset
+
+        Args:
+            dataset (str): Path to the YOLOv5 dataset folder.
+            pt_file (str): best.pt path.
+        """
+        
+        initialise()
+
+        model = Model(
+            path=Path(pt_file),
         )
+
+        data = Dataset(
+            path=Path(dataset),
+            model=model,
+        )
+        

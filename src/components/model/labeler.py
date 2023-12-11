@@ -7,6 +7,8 @@ import numpy as np
 import uuid
 import cv2
 
+from components.model.dataset import DatasetFolders
+
 
 class Labeler:
     def __call__(self, func):
@@ -47,7 +49,9 @@ class Labeler:
                 label_file.write(label_content)
 
             img_path = (
-                str(label_file_path.absolute()).replace("labels", "images")
+                str(label_file_path.absolute()).replace(
+                    DatasetFolders.LabelFolder, DatasetFolders.ImageFolder
+                )
             ).replace("txt", "jpg")
 
             cv2.imwrite(img_path, input[1])

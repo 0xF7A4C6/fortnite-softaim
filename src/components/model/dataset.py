@@ -2,11 +2,18 @@ import albumentations as A
 from loguru import logger
 from pathlib import Path
 from tqdm import tqdm
+from enum import Enum
 import time
 import glob
 import cv2
 
 from components.model.model import Model
+
+
+class DatasetFolders(str, Enum):
+    ImageFolder = "images"
+    LabelFolder = "labels"
+    UnlabeledFolder = "input"
 
 
 class Dataset:
@@ -20,7 +27,11 @@ class Dataset:
         Create dataset base folders tree
         """
 
-        for folders in ("images", "labels", "input"):
+        for folders in (
+            DatasetFolders.ImageFolder,
+            DatasetFolders.LabelFolder,
+            DatasetFolders.UnlabeledFolder,
+        ):
             folder_path = self.path / folders
 
             if folder_path.exists():
@@ -41,9 +52,9 @@ class Dataset:
         Check Dataset folder integrity, create one if not found.
         """
 
-        images_folder = self.path / "images"
-        labels_folder = self.path / "labels"
-        input_folder = self.path / "input"
+        images_folder = self.path / DatasetFolders.ImageFolder
+        labels_folder = self.path / DatasetFolders.LabelFolder
+        input_folder = self.path / DatasetFolders.UnlabeledFolder
 
         if (
             not images_folder.exists()
@@ -55,7 +66,9 @@ class Dataset:
             )
             self.__install()
 
-        logger.info(f"Dataset found! ({images_folder}, {labels_folder}, {input_folder})")
+        logger.info(
+            f"Dataset found! ({images_folder}, {labels_folder}, {input_folder})"
+        )
         return (images_folder, labels_folder, input_folder)
 
     @logger.catch
@@ -106,38 +119,37 @@ class Dataset:
             str(input_folder / "*.png")
         )
 
+        # todo: add as params?
+        variation_chance = 0.3
+
         transform = A.Compose(
             [
                 A.Blur(
                     blur_limit=(3, 7),
-                    p=0.2,
+                    p=variation_chance,
                 ),
                 A.GaussNoise(
                     var_limit=(10, 50),
-                    p=0.2,
+                    p=variation_chance,
                 ),
                 A.HorizontalFlip(
-                    p=0.2,
-                ),
-                A.Rotate(
-                    limit=(-45, 45),
-                    p=0.2,
+                    p=variation_chance,
                 ),
                 A.RandomBrightnessContrast(
-                    p=0.2,
+                    p=variation_chance,
                 ),
                 A.RandomGamma(
-                    p=0.2,
+                    p=0.3,
                 ),
                 A.HueSaturationValue(
                     hue_shift_limit=20,
                     sat_shift_limit=30,
                     val_shift_limit=20,
-                    p=0.2,
+                    p=variation_chance,
                 ),
                 A.RandomBrightness(
                     limit=0.2,
-                    p=0.2,
+                    p=variation_chance,
                 ),
             ]
         )
