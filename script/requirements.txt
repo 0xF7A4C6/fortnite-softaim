@@ -33,7 +33,7 @@ google-auth==2.24.0
 google-auth-oauthlib==1.1.0
 grpcio==1.59.3
 huggingface-hub==0.19.4
-idna==2.10
+idna==3.7
 imageio==2.33.0
 imgui==2.0.0
 importlib-metadata==7.0.0
