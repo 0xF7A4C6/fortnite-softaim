@@ -136,7 +136,7 @@ tifffile==2023.9.26
 timm==0.9.12
 tokenizers==0.15.0
 tomli==2.0.1
-torch==2.0.1+cu117
+torch==2.2.0
 torchaudio==2.0.2+cu117
 torchvision==0.15.2+cu117
 tqdm==4.66.1
